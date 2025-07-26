@@ -2,3 +2,5 @@
 *.pyc
 *.mp3
 *.txt
+audio_folder/*
+scripts_folder/*

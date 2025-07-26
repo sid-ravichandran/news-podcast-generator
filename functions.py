@@ -43,7 +43,7 @@ def create_table_of_articles(articles):
         df['Date'] = pd.to_datetime(df['Date']).dt.strftime('%Y-%m-%d')
         df['URL'] = df['URL'].astype(str)  # Ensure URL is string
 
-        df['Include'] = True  # Add a column to indicate inclusion
+        df['Include'] = False  # Add a column to indicate inclusion
         df['Include'] = df['Include'].astype(bool)  # Ensure the column is boolean
 
         df = df[['Include', 'Title', 'Author', 'Description', 'Source', 'Date', 'URL']]
@@ -58,18 +58,31 @@ def extract_article_text(url):
     return article.title, article.text
 
 
-def summarize_article(title, text, date, source):
+def summarize_article(title, text, date, source, role='podcast_scriptwriter'):
     """Summarize an article using OpenAI's GPT-4 model with the latest API format."""
     client = OpenAI(
         # This is the default and can be omitted
         api_key=os.getenv('OPENAI_API_KEY'),
     )
     
+    if role == 'summarizer':
+        prompt_input = """You are a news article summarizer. Write a concise and engaging summary of the article below.
+                        If the article is technical, maintain a professional tone. If it is general news, use a friendly and conversational tone.
+                        Keep the summary to 300 words or less.
+                        Mention the date and the source of the article in the summary."""
+
+        messages_content = "You are a professional news article summarizer."
+
+    elif role == 'podcast_scriptwriter':
+        prompt_input = """You are a podcast scriptwriter. Write a short and engaging summary of the article below in a friendly, conversational tone.
+                        Mention the date and the source of the article in the summary.
+                        Make it sound like it's being read on a technology, science and business news podcast. Keep it to 300 words or less. 
+                        End with a natural-sounding transition to the next article."""
+
+        messages_content = "You are a professional podcast scriptwriter."
+
     prompt = f"""
-    You are a podcast scriptwriter. Write a short and engaging summary of the article below in a friendly, conversational tone.
-    Mention the date and the source of the article in the summary.
-    Make it sound like it's being read on a technology, science and business news podcast. Keep it to 200 words or less. 
-    End with a natural-sounding transition to the next article.
+    {prompt_input}
 
     TITLE: {title}
     DATE: {date}
@@ -80,11 +93,11 @@ def summarize_article(title, text, date, source):
     """
     
     response = client.chat.completions.create(
-        model="gpt-4",
+        model="gpt-3.5-turbo-16k",
         messages=[
             {
                 "role": "system",
-                "content": "You are a professional podcast scriptwriter specializing in technology news."
+                "content": messages_content
             },
             {
                 "role": "user",
@@ -99,7 +112,7 @@ def summarize_article(title, text, date, source):
 
 
 @st.cache_data
-def generate_podcast_script(article_urls, article_sources, article_dates):
+def generate_podcast_script(article_urls, article_sources, article_dates, role='podcast_scriptwriter'):
     """Generate a podcast script from the selected articles."""
 
     # article_urls = st.session_state.article_urls
@@ -108,27 +121,80 @@ def generate_podcast_script(article_urls, article_sources, article_dates):
 
     script_parts = []
 
-    intro = "Welcome to your daily Battery and Electrification news roundup! Let's dive into today's top stories.\n"
+    intro = "Welcome to your news roundup! Let's dive into your selected news stories.\n"
     script_parts.append(intro)
 
     i = 0
     for url, source, date in zip(article_urls, article_sources, article_dates):
-        print(f"Processing article {i + 1}/{len(article_urls)}...")
+        st.write(f"Processing article {i + 1}/{len(article_urls)}...")
         try:
             title, content = extract_article_text(url)
-            summary = summarize_article(title, content, date, source)
+            summary = summarize_article(title, content, date, source, role=role)
             script_parts.append(summary)
             time.sleep(1)  # Be polite to OpenAI’s API
 
         except Exception as e:
-            print(f"Failed to process article: {url}")
-            print("Error:", e)
+            st.write(f"Failed to process article: {url}")
+            # st.write("Error:", e)
             continue
         
         i += 1
 
-    outro = "\nThat's it for today! Thanks for tuning in — we'll be back next time with more stories. Until then, stay informed and stay curious!"
+    outro = "\nThat brings us to the end of your selected stories! Thanks for tuning in — stay informed and stay curious!"
     script_parts.append(outro)
 
     st.session_state.final_script = "\n\n".join(script_parts)
 
+
+def generate_podcast_elevenlabs():
+    """Generate a podcast using ElevenLabs' TTS API."""
+
+    from elevenlabs import play, VoiceSettings
+    from elevenlabs.client import ElevenLabs
+
+    # Initialize the client with your API key
+    client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
+
+    # Generate audio
+    response = client.text_to_speech.convert(
+        text=st.session_state.final_script,
+        voice_id="pNInz6obpgDQGcFmaJgB",
+        model_id="eleven_turbo_v2",
+        output_format="mp3_44100_128",
+
+        voice_settings=VoiceSettings(
+            stability=0.5,
+            similarity_boost=0.75,
+            style=0.0,
+            use_speaker_boost=True,
+            speed=1.0,
+        ),
+    )
+    return response
+
+
+def generate_podcast_podcastfy():
+    """Generate a podcast using Podcastfy's API."""
+
+    from podcastfy.client import generate_podcast
+
+    response = generate_podcast(urls=st.session_state.article_urls,
+                                tts_model="gemini")
+    
+    return response
+
+
+def generate_podcast_openai():
+    """Generate a podcast using OpenAI's TTS API."""
+
+    from openai import OpenAI
+    client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+    response = client.audio.speech.create(
+            model="tts-1",
+            voice="alloy",
+            input=st.session_state.final_script,
+            response_format="mp3",
+            speed=1.1
+        )
+    return response
