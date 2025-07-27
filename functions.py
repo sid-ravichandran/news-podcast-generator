@@ -194,7 +194,7 @@ def generate_podcast_openai():
             model="tts-1",
             voice="alloy",
             input=st.session_state.final_script,
-            response_format="mp3",
-            speed=1.1
+            response_format="mp3"
+            # speed=1.1
         )
     return response

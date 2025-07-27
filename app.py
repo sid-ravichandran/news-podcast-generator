@@ -7,18 +7,63 @@ import session_state as ss
 import io
 
 # Setup
-st.set_page_config(page_title="News Podcast Generator", page_icon=":microphone:")
-st.set_page_config(layout="wide")
+st.markdown("""
+    <style>
+    .main {
+        padding: 2rem;
+        background-color: #f8f9fa;
+    }
+    .stTitle {
+        color: #1e3d59;
+        font-size: 3rem !important;
+        padding-bottom: 1rem;
+    }
+    .stHeader {
+        color: #17a2b8;
+        font-size: 1.8rem !important;
+    }
+    .stContainer {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+    .stButton>button {
+        background-color: #b22222;
+        color: white;
+        border-radius: 5px;
+        padding: 0.5rem 1rem;
+    }
+    .stTextInput>div>div>input {
+        border-radius: 5px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-st.title("News Podcast Generator")
-st.header(":microphone: This AI-powered app summarises and generates a podcast from the latest news articles on your chosen topics :newspaper:")
+st.set_page_config(
+    page_title="NewsVox | AI News Podcast Generator",
+    page_icon="🎙️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-with st.container(border=True):
-    st.write("**Steps to generate your summaries and podcast:**")
-    st.write("1. Fill out the form to select topics and a time frame for news articles.")
-    st.write("2. Review and select the articles you want to include in your podcast.")
-    st.write("3. Generate the summaries of the selected articles.")
-    st.write("4. Generate the podcast audio from the articles")
+# Title section with columns
+col1, col2 = st.columns([1, 3])
+with col1:
+    st.image("https://img.icons8.com/clouds/200/000000/microphone.png", width=100)
+with col2:
+    st.title("NewsVox: AI News Podcast Generator")
+    st.markdown("*Transform text to talk: Your personalized news podcast creator* 🎙️📰")
+
+with st.container():
+    st.markdown("""
+    ### How It Works 🔄
+    1. 📝 **Input Topics**: Enter your interests and timeframe
+    2. 📰 **Select Articles**: Choose from relevant news sources
+    3. ✍️ **Generate Summaries**: AI creates concise article summaries
+    4. 🎧 **Create Podcast**: Convert summaries to audio
+    """)
 
 ################################ User inputs for news articles ###################################
 
@@ -31,21 +76,21 @@ ss.init_session_state()
 # Create input form
 st.subheader("Step 1: News Topics and Time Frame")
 with st.form("topic_form"):
-    st.write("**Step 1: Select News Topics and Time Frame**")
+    st.markdown("### 🎯 Step 1: Select Your News Preferences")
 
     topics_input = st.text_input(
-        "Enter topics for news articles to search for (comma-separated)",
+        "📚 Topics of Interest",
         value="batteries, electrification",
-        help="Enter topics separated by commas (e.g., batteries, electrification, solar)"
+        help="Separate topics with commas (e.g., batteries, electrification, solar)"
     )
     
     from_date = st.date_input(
-        "Select start date for articles",
+        "📅 From Date",
         value=datetime.now(),
-        help="Select the earliest date for fetching articles"
+        help="Select start date for news articles"
     )
     
-    submit_button = st.form_submit_button("Fetch Articles")
+    submit_button = st.form_submit_button("🔍 Find Articles")
     
     if submit_button:
         st.session_state.topics = [topic.strip() for topic in topics_input.split(",")]
@@ -70,11 +115,25 @@ if st.session_state.form_submitted:
 ################################ Fetch and Select Articles ###################################
 if st.session_state.form_confirmed:
     with st.container(border=True):
-        st.subheader("Step 2: Select Articles for Podcast")
-        st.write("- Review articles from the list below based on features such as titles and descriptions.")
-        st.write("- Select articles you want to include in your podcast using the _Include_ column.")
-        st.write("- For best results and performance, select no more than 10 articles.")
-        st.write(":newspaper: **Articles Fetched**")
+        st.markdown("""
+        ### Step 2: 📰 Select from Available Articles
+        Select articles for your podcast by checking the boxes in the 'Include' column.
+        **For best results, please select no more than 10 articles**
+        """)
+
+        st.markdown("""
+        <style>
+        .dataframe {
+            font-family: 'Arial', sans-serif;
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-size: 0.9em;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+        }
+        </style>
+        """, unsafe_allow_html=True)
 
         articles = fn.fetch_articles()
 
@@ -88,11 +147,11 @@ if st.session_state.form_confirmed:
         # DEBUG
         # df_articles_edited = st.data_editor(df_articles.iloc[[0]].reset_index(drop=True))
 
-        article_urls = df_articles_edited[df_articles_edited['Include'] == True]['URL'].tolist()
-        article_sources = df_articles_edited[df_articles_edited['Include'] == True]['Source'].tolist()
-        article_dates = df_articles_edited[df_articles_edited['Include'] == True]['Date'].tolist()
+        article_urls = df_articles_edited[df_articles_edited['Include'] == True]['URL'].tolist()[:10]
+        article_sources = df_articles_edited[df_articles_edited['Include'] == True]['Source'].tolist()[:10]
+        article_dates = df_articles_edited[df_articles_edited['Include'] == True]['Date'].tolist()[:10]
 
-        if st.button("Submit document selection"):
+        if st.button("Submit article selection"):
             if not article_urls:
                 st.warning("No articles selected. Please select at least one article to generate a podcast.", icon="⚠️")
             else:
@@ -181,3 +240,12 @@ if st.session_state.form_confirmed:
 
 else:
     st.warning("Please fill out the form and confirm inputs to fetch articles and generate a podcast.", icon="⚠️")
+
+# Add at the bottom of the file
+st.markdown("""
+---
+<div style='text-align: center; color: #666;'>
+    <p>Made with ❤️ by Sid Ravichandran</p>
+    <p>Powered by OpenAI, News API, and Streamlit</p>
+</div>
+""", unsafe_allow_html=True)
