@@ -33,21 +33,16 @@ def create_table_of_articles(articles):
     else:
         data = {
             "Title": [article['title'] for article in articles],
-            "Author": [article['author'] for article in articles],
-            "Description": [article['description'] for article in articles],
-            "Source": [article['source']['name'] for article in articles],
+            "Author": [article.get('author', 'Unknown') for article in articles],
+            "Description": [article.get('description', '') for article in articles],
+            "Source": [article['source'].get('name', 'Unknown') for article in articles],
             "Date": [article['publishedAt'] for article in articles],
-            "URL": [article['url'] for article in articles]
+            "URL": [article['url'] for article in articles],
+            "Include": [False for _ in articles]  # Add Include column with default False
         }
+        
         df = pd.DataFrame(data)
-        df['Date'] = pd.to_datetime(df['Date']).dt.strftime('%Y-%m-%d')
-        df['URL'] = df['URL'].astype(str)  # Ensure URL is string
-
-        df['Include'] = False  # Add a column to indicate inclusion
-        df['Include'] = df['Include'].astype(bool)  # Ensure the column is boolean
-
-        df = df[['Include', 'Title', 'Author', 'Description', 'Source', 'Date', 'URL']]
-
+        df['Include'] = df['Include'].astype(bool)  # Ensure boolean type
         return df
     
 

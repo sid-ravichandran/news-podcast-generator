@@ -16,6 +16,9 @@ def init_session_state():
     if 'form_confirmed' not in st.session_state:
         st.session_state.form_confirmed = False
 
+    if 'articles_selected' not in st.session_state:
+        st.session_state.articles_selected = False
+
     if 'article_urls' not in st.session_state:
         st.session_state.article_urls = []
 

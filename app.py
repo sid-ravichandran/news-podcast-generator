@@ -106,6 +106,7 @@ if st.session_state.form_submitted:
         st.session_state.topics = None
         st.session_state.from_date = None
         st.session_state.form_submitted = False
+        st.session_state.articles_selected = False
         st.rerun()
 
 if st.session_state.form_submitted:
@@ -142,28 +143,33 @@ if st.session_state.form_confirmed:
         #     st.write(articles)
 
         df_articles = fn.create_table_of_articles(articles)
-        df_articles_edited = st.data_editor(df_articles)
 
-        # DEBUG
-        # df_articles_edited = st.data_editor(df_articles.iloc[[0]].reset_index(drop=True))
+        if len(df_articles) > 0:
+            df_articles_edited = st.data_editor(df_articles)
 
-        article_urls = df_articles_edited[df_articles_edited['Include'] == True]['URL'].tolist()[:10]
-        article_sources = df_articles_edited[df_articles_edited['Include'] == True]['Source'].tolist()[:10]
-        article_dates = df_articles_edited[df_articles_edited['Include'] == True]['Date'].tolist()[:10]
+            # DEBUG
+            # df_articles_edited = st.data_editor(df_articles.iloc[[0]].reset_index(drop=True))
 
-        if st.button("Submit article selection"):
-            if not article_urls:
-                st.warning("No articles selected. Please select at least one article to generate a podcast.", icon="⚠️")
-            else:
-                st.session_state.article_urls = article_urls
-                st.session_state.article_sources = article_sources
-                st.session_state.article_dates = article_dates
+            article_urls = df_articles_edited[df_articles_edited['Include'] == True]['URL'].tolist()[:10]
+            article_sources = df_articles_edited[df_articles_edited['Include'] == True]['Source'].tolist()[:10]
+            article_dates = df_articles_edited[df_articles_edited['Include'] == True]['Date'].tolist()[:10]
 
-                st.success("Articles selected successfully! You can now proceed to generating the article summaries and the podcast.")
+            if st.button("Submit article selection"):
+                if not article_urls:
+                    st.warning("No articles selected. Please select at least one article to generate a podcast.", icon="⚠️")
+                else:
+                    st.session_state.article_urls = article_urls
+                    st.session_state.article_sources = article_sources
+                    st.session_state.article_dates = article_dates
+                    st.session_state.articles_selected = True
+
+                    st.success("Articles selected successfully! You can now proceed to generating the article summaries and the podcast.")
+        else:
+            st.warning("No articles found. Please **Reset Inputs** and try a different search.", icon="⚠️")
 
     ################################ Generate Podcast script ###################################
 
-    if len(st.session_state.article_urls) > 0:
+    if st.session_state.articles_selected == True:
         with st.container(border=True):
             st.subheader("**Step 3: Generate Article Summaries**")
 
