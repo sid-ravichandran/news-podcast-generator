@@ -13,15 +13,25 @@ load_dotenv()
 
 
 @st.cache_data
-def fetch_articles():
-    topics = st.session_state.topics
-    from_date = st.session_state.from_date
+def fetch_articles(topics, from_date):
+    # topics = st.session_state.topics
+    # from_date = st.session_state.from_date
 
+    if not topics or not from_date:
+        return []
+    
     topics_str = '+'.join(topics)
     url = f"https://newsapi.org/v2/everything?q={topics_str}&from={from_date}&sortBy=popularity&apiKey={os.getenv('NEWS_API_KEY')}"
-    response = requests.get(url)
-    articles = response.json().get('articles', [])
-    return articles
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an error for bad responses
+        articles = response.json().get('articles', [])
+        return articles
+    
+    except Exception as e:
+        st.error(f"Error fetching articles: {str(e)}")
+        return []
 
 
 def create_table_of_articles(articles):

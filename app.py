@@ -94,12 +94,15 @@ with st.form("topic_form"):
     submit_button = st.form_submit_button("🔍 Find Articles")
     
     if submit_button:
-        st.session_state.topics = [topic.strip() for topic in topics_input.split(",")]
+        st.session_state.topics = [topic.strip() for topic in topics_input.split(",")] if topics_input else None
         st.session_state.from_date = from_date.strftime("%Y-%m-%d")
         st.session_state.form_submitted = True
 
-        st.write(f"**Entered Topics:** {', '.join(st.session_state.topics)}")
-        st.write(f"**Entered start Date:** {st.session_state.from_date}")
+        if (st.session_state.topics is None) or (st.session_state.from_date is None):
+            st.warning("Please enter valid topics and/or date.", icon="⚠️")
+        else:
+            st.write(f"**Entered Topics:** {', '.join(st.session_state.topics)}")
+            st.write(f"**Entered start Date:** {st.session_state.from_date}")
 
 # Add a reset button outside the form
 if st.session_state.form_submitted:
@@ -141,7 +144,8 @@ if st.session_state.form_confirmed:
         </style>
         """, unsafe_allow_html=True)
 
-        articles = fn.fetch_articles()
+        with st.spinner("Fetching articles..."):
+            articles = fn.fetch_articles(st.session_state.topics, st.session_state.from_date)
 
         # DEBUG: Display the articles fetched
         # with st.expander("Show Articles Fetched"):
@@ -150,6 +154,7 @@ if st.session_state.form_confirmed:
         df_articles = fn.create_table_of_articles(articles)
 
         if len(df_articles) > 0:
+            st.success(f"Found {len(df_articles)} articles")
             df_articles_edited = st.data_editor(df_articles)
 
             # DEBUG
