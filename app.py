@@ -80,7 +80,8 @@ with st.form("topic_form"):
 
     topics_input = st.text_input(
         "📚 Topics of Interest",
-        value="batteries, electrification",
+        value=None,
+        placeholder="Example topics: batteries, electrification, ...",
         help="Separate topics with commas (e.g., batteries, electrification, solar)"
     )
     
@@ -111,7 +112,11 @@ if st.session_state.form_submitted:
 
 if st.session_state.form_submitted:
     if st.button(":lock: Confirm Inputs"):
-        st.session_state.form_confirmed = True
+        if (st.session_state.topics != None) & (st.session_state.from_date != None):
+            st.session_state.form_confirmed = True
+        else:
+            st.session_state.form_confirmed = False
+            st.warning("No valid inputs porvided, please **Reset Inputs** and try a different search.", icon="⚠️")
 
 ################################ Fetch and Select Articles ###################################
 if st.session_state.form_confirmed:
