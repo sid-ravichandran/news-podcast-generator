@@ -53,7 +53,8 @@ def create_table_of_articles(articles):
         
         df = pd.DataFrame(data)
         df['Include'] = df['Include'].astype(bool)  # Ensure boolean type
-        return df
+        col_order = ['Include', 'Title', 'Description', 'Source'] + [col for col in df.columns if col not in ['Include']]
+        return df[col_order]
     
 
 def extract_article_text(url):
