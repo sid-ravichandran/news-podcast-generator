@@ -53,7 +53,7 @@ def create_table_of_articles(articles):
         
         df = pd.DataFrame(data)
         df['Include'] = df['Include'].astype(bool)  # Ensure boolean type
-        col_order = ['Include', 'Title', 'Description', 'Source'] + [col for col in df.columns if col not in ['Include']]
+        col_order = ['Include', 'Title', 'Description', 'Source'] + [col for col in df.columns if col not in ['Include', 'Title', 'Description', 'Source']]
         return df[col_order]
     
 
