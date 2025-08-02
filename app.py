@@ -1,7 +1,7 @@
 import streamlit as st
 import functions as fn
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import session_state as ss
 import io
@@ -86,8 +86,8 @@ with st.form("topic_form"):
     )
     
     from_date = st.date_input(
-        "📅 From Date",
-        value=datetime.now(),
+        "📅 From Date for search (set to a date in the past)",
+        value=datetime.now() - timedelta(weeks=2),
         help="Select start date for news articles"
     )
     
