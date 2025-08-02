@@ -76,16 +76,16 @@ def summarize_article(title, text, date, source, role='podcast_scriptwriter'):
     if role == 'summarizer':
         prompt_input = """You are a news article summarizer. Write a concise and engaging summary of the article below.
                         If the article is technical, maintain a professional tone. If it is general news, use a friendly and conversational tone.
-                        Keep the summary to 300 words or less.
+                        Keep the summary to 500 words or less.
                         Mention the date and the source of the article in the summary."""
 
         messages_content = "You are a professional news article summarizer."
 
     elif role == 'podcast_scriptwriter':
-        prompt_input = """You are a podcast scriptwriter. Write a short and engaging summary of the article below in a friendly but professional tone.
+        prompt_input = """You are a podcast scriptwriter. Write an engaging summary of the article below in a friendly but professional tone.
                         Mention the date and the source of the article in the summary.
-                        Make it sound like it's being read on a serious news podcast. Keep it to 500 words or less. 
-                        Minimise filler text in your generated output, and the emphasis should be on the content of the article. 
+                        Make it sound like it's being read on a serious news podcast. Don't make it too short, the summary should be up to 500 words long but not more. 
+                        Minimise filler text in your generated output, and the emphasis should be on the content of the article. Specifically try to bring out examples, numeric data and figures if possible.
                         End with a short, natural-sounding transition to the next article."""
 
         messages_content = "You are a professional news article summarizer and podcast scriptwriter."
