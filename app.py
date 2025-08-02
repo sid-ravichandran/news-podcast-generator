@@ -53,7 +53,7 @@ col1, col2 = st.columns([1, 3])
 with col1:
     st.image("https://img.icons8.com/clouds/200/000000/microphone.png", width=100)
 with col2:
-    st.title("NewsVox: AI News Podcast Generator")
+    st.title("NewsVox 🎙️: AI News Podcast Generator")
     st.markdown("*Transform text to talk: Your personalized news podcast creator* 🎙️📰")
 
 with st.container():
@@ -226,7 +226,7 @@ if st.session_state.form_confirmed:
                     # response = fn.generate_podcast_podcastfy()
 
                     ####################### OpenAI TTS - use this for generating podcast audio ################
-                    response = fn.generate_podcast_openai()
+                    audio_buffer = fn.generate_podcast_openai()
 
                 ####################### DEPRECATED - Automatically save the podcast audio file ############
                 # # Create audio folder if it doesn't exist
@@ -240,18 +240,18 @@ if st.session_state.form_confirmed:
                 #             f.write(chunk)
 
                 # Combine all chunks into a single bytes object
-                audio_bytes = io.BytesIO(response.content).read()
+                # audio_bytes = io.BytesIO(response.content).read()
                 
                 # Create download button for the audio file
                 st.download_button(
                     label="🎧 Download Podcast",
-                    data=audio_bytes,
+                    data=audio_buffer,
                     file_name=f"podcast_audio.mp3",
                     mime="audio/mp3"
                 )
                 
                 # Display audio player
-                st.audio(audio_bytes, format="audio/mp3")
+                st.audio(audio_buffer, format="audio/mp3")
                 st.success("Podcast generated successfully!")
 
 else:

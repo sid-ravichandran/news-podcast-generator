@@ -3,3 +3,4 @@
 audio_folder/*
 scripts_folder/*
 data/*
+*.ipynb

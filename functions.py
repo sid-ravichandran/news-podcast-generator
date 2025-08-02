@@ -6,6 +6,8 @@ import pandas as pd
 from openai import OpenAI
 from newspaper import Article
 import time
+import io
+from pydub import AudioSegment
 
 
 # Load environment variables
@@ -191,17 +193,66 @@ def generate_podcast_podcastfy():
     return response
 
 
+# def generate_podcast_openai():
+#     """Generate a podcast using OpenAI's TTS API."""
+
+#     from openai import OpenAI
+#     client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+#     response = client.audio.speech.create(
+#             model="tts-1",
+#             voice="alloy",
+#             input=st.session_state.final_script,
+#             response_format="mp3"
+#             # speed=1.1
+#         )
+#     return response
+
 def generate_podcast_openai():
-    """Generate a podcast using OpenAI's TTS API."""
+    """Generate a podcast using OpenAI's TTS API keeping char limit in mind."""
+
+    def chunk_text(text, max_chars=4096):
+        chunks = []
+        while len(text) > max_chars:
+            split_at = text.rfind(' ', 0, max_chars)
+            if split_at == -1:
+                split_at = max_chars
+            chunks.append(text[:split_at])
+            text = text[split_at:].lstrip()
+        if text:
+            chunks.append(text)
+        return chunks
+    
+    def merge_audio_segments(segments):
+        combined = AudioSegment.empty()
+        for segment in segments:
+            combined += segment
+        return combined
+
+    text = st.session_state.final_script
+    chunks = chunk_text(text)
+    audio_segments = []
 
     from openai import OpenAI
     client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
-    response = client.audio.speech.create(
+    for chunk in chunks:
+        response = client.audio.speech.create(
             model="tts-1",
             voice="alloy",
-            input=st.session_state.final_script,
+            input=chunk,
             response_format="mp3"
             # speed=1.1
         )
-    return response
+        mp3_bytes = io.BytesIO(response.content)
+        segment = AudioSegment.from_file(mp3_bytes, format="mp3")
+        audio_segments.append(segment)
+
+    final_audio = merge_audio_segments(audio_segments)
+
+    # Export merged audio to BytesIO
+    output_buffer = io.BytesIO()
+    final_audio.export(output_buffer, format="mp3")
+    output_buffer.seek(0)
+
+    return output_buffer

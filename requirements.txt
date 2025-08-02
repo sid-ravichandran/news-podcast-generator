@@ -9,3 +9,5 @@ lxml
 lxml-html-clean
 python-dateutil
 # podcastfy
+pydub
+ffmpeg-python
