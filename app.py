@@ -38,6 +38,64 @@ st.markdown("""
     .stTextInput>div>div>input {
         border-radius: 5px;
     }
+            
+    /* Article card styling */
+    [data-testid="stContainer"] {
+        background-color: white;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    [data-testid="stContainer"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Button styling */
+    [data-testid="baseButton-primary"] {
+        background-color: #17a2b8;
+        color: white;
+        border-radius: 5px;
+        padding: 0.5rem 2rem;
+        font-weight: bold;
+    }
+            
+    /* Updated Checkbox styling for dark mode compatibility */
+    [data-testid="stCheckbox"] {
+        background-color: transparent;
+        padding: 0.5rem;
+        border-radius: 5px;
+        margin: 0.5rem 0;
+        color: inherit;
+    }
+    
+    /* Style for checkbox label */
+    [data-testid="stCheckbox"] label {
+        color: inherit !important;
+    }
+    
+    /* Style for checkbox input */
+    [data-testid="stCheckbox"] input {
+        accent-color: #17a2b8;
+    }
+    
+    /* Article card additional styling for dark mode */
+    [data-testid="stContainer"] {
+        background-color: var(--background-color);
+        color: var(--text-color);
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    /* Ensure text remains visible in dark mode */
+    [data-testid="stContainer"] * {
+        color: inherit;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -119,7 +177,7 @@ if st.session_state.form_submitted:
             st.session_state.form_confirmed = True
         else:
             st.session_state.form_confirmed = False
-            st.warning("No valid inputs porvided, please **Reset Inputs** and try a different search.", icon="⚠️")
+            st.warning("No valid inputs provided, please **Reset Inputs** and try a different search.", icon="⚠️")
 
 ################################ Fetch and Select Articles ###################################
 if st.session_state.form_confirmed:
@@ -153,27 +211,106 @@ if st.session_state.form_confirmed:
 
         df_articles = fn.create_table_of_articles(articles)
 
+        # if len(df_articles) > 0:
+        #     st.success(f"Found {len(df_articles)} articles")
+        #     df_articles_edited = st.data_editor(df_articles)
+
+        #     # DEBUG
+        #     # df_articles_edited = st.data_editor(df_articles.iloc[[0]].reset_index(drop=True))
+
+        #     article_urls = df_articles_edited[df_articles_edited['Include'] == True]['URL'].tolist()[:10]
+        #     article_sources = df_articles_edited[df_articles_edited['Include'] == True]['Source'].tolist()[:10]
+        #     article_dates = df_articles_edited[df_articles_edited['Include'] == True]['Date'].tolist()[:10]
+
+        #     if st.button("Submit article selection"):
+        #         if not article_urls:
+        #             st.warning("No articles selected. Please select at least one article to generate a podcast.", icon="⚠️")
+        #         else:
+        #             st.session_state.article_urls = article_urls
+        #             st.session_state.article_sources = article_sources
+        #             st.session_state.article_dates = article_dates
+        #             st.session_state.articles_selected = True
+
+        #             st.success("Articles selected successfully! You can now proceed to generating the article summaries and the podcast.")
+        # else:
+        #     st.warning("No articles found. Please **Reset Inputs** and try a different search.", icon="⚠️")
+
         if len(df_articles) > 0:
-            st.success(f"Found {len(df_articles)} articles")
-            df_articles_edited = st.data_editor(df_articles)
-
-            # DEBUG
-            # df_articles_edited = st.data_editor(df_articles.iloc[[0]].reset_index(drop=True))
-
-            article_urls = df_articles_edited[df_articles_edited['Include'] == True]['URL'].tolist()[:10]
-            article_sources = df_articles_edited[df_articles_edited['Include'] == True]['Source'].tolist()[:10]
-            article_dates = df_articles_edited[df_articles_edited['Include'] == True]['Date'].tolist()[:10]
-
-            if st.button("Submit article selection"):
-                if not article_urls:
+            st.success(f"📚 Showing top {len(df_articles)} articles")
+            
+            st.markdown("""
+            **Articles are sorted by:**
+            1. Source reliability (major news outlets)
+            2. Relevance to your topics
+            3. Publication date
+            """)
+            
+            # Create three columns for article cards
+            cols = st.columns(3)
+            
+            # Track selected articles
+            if 'selected_articles' not in st.session_state:
+                st.session_state.selected_articles = set()
+            
+            for idx, row in df_articles.iterrows():
+                with cols[idx % 3]:
+                    # Create a card-like container
+                    with st.container(border=True):
+                        # Article title as header
+                        st.markdown(f"#### {row['Title'][:100]}...")
+                        
+                        # Source and date info
+                        st.markdown(f"""
+                        <div style='display: flex; justify-content: space-between; color: #666;'>
+                            <span>📰 {row['Source']}</span>
+                            <span>📅 {pd.to_datetime(row['Date']).strftime('%Y-%m-%d')}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Description with truncation
+                        st.markdown(f"*{row['Description'][:150]}...*")
+                        
+                        # Author info if available
+                        if row['Author'] and row['Author'] != 'Unknown':
+                            st.markdown(f"✍️ By: {row['Author']}")
+                        
+                        # Selection checkbox
+                        is_selected = st.checkbox(
+                            "Select this article",
+                            key=f"article_{idx}",
+                            value=idx in st.session_state.selected_articles
+                        )
+                        
+                        if is_selected:
+                            st.session_state.selected_articles.add(idx)
+                        else:
+                            st.session_state.selected_articles.discard(idx)
+                        
+                        # Read more link
+                        st.markdown(f"[🔗 Read full article]({row['URL']})")
+            
+            # Selection summary and warning
+            n_selected = len(st.session_state.selected_articles)
+            if n_selected > 0:
+                st.info(f"📝 You have selected {n_selected} article{'s' if n_selected > 1 else ''}")
+                if n_selected > 10:
+                    st.warning("⚠️ For best results, please select no more than 10 articles")
+            
+            # Submit button for article selection
+            if st.button("✅ Confirm Selection", type="primary"):
+                if n_selected == 0:
                     st.warning("No articles selected. Please select at least one article to generate a podcast.", icon="⚠️")
                 else:
-                    st.session_state.article_urls = article_urls
-                    st.session_state.article_sources = article_sources
-                    st.session_state.article_dates = article_dates
+                    # Get selected articles data
+                    selected_indices = list(st.session_state.selected_articles)[:10]  # Limit to first 10
+                    selected_df = df_articles.iloc[selected_indices]
+                    
+                    st.session_state.article_urls = selected_df['URL'].tolist()
+                    st.session_state.article_sources = selected_df['Source'].tolist()
+                    st.session_state.article_dates = selected_df['Date'].tolist()
                     st.session_state.articles_selected = True
-
-                    st.success("Articles selected successfully! You can now proceed to generating the article summaries and the podcast.")
+                    
+                    st.success("✨ Articles selected successfully! You can now proceed to generating the article summaries and podcast.")
         else:
             st.warning("No articles found. Please **Reset Inputs** and try a different search.", icon="⚠️")
 

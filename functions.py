@@ -23,13 +23,36 @@ def fetch_articles(topics, from_date):
         return []
     
     topics_str = '+'.join(topics)
-    url = f"https://newsapi.org/v2/everything?q={topics_str}&from={from_date}&sortBy=popularity&apiKey={os.getenv('NEWS_API_KEY')}"
+    # url = f"https://newsapi.org/v2/everything?q={topics_str}&from={from_date}&sortBy=popularity&apiKey={os.getenv('NEWS_API_KEY')}"
+    url = (f"https://newsapi.org/v2/everything?"
+           f"q={topics_str}"
+           f"&from={from_date}"
+           f"&language=en"  # English only
+           f"&pageSize=21"  # Limit to 21 articles
+           f"&sortBy=relevancy"  # Sort by relevancy
+           # f"&domains=bloomberg.com,reuters.com,apnews.com,bbc.com,wsj.com,ft.com,nytimes.com"  # Reliable sources
+           f"&apiKey={os.getenv('NEWS_API_KEY')}")
 
     try:
         response = requests.get(url)
         response.raise_for_status()  # Raise an error for bad responses
         articles = response.json().get('articles', [])
-        return articles
+
+        # Additional sorting based on source reliability and popularity
+        source_weights = {
+            'Reuters': 10,
+            'Bloomberg': 9,
+            'The Wall Street Journal': 8,
+            'BBC News': 8,
+            'The New York Times': 8,
+            'Financial Times': 8,
+            'Associated Press': 8
+        }
+        
+        # Sort articles by source reliability
+        articles.sort(key=lambda x: source_weights.get(x['source']['name'], 0), reverse=True)
+
+        return articles[:21]
     
     except Exception as e:
         st.error(f"Error fetching articles: {str(e)}")
@@ -83,7 +106,7 @@ def summarize_article(title, text, date, source, role='podcast_scriptwriter'):
 
     elif role == 'podcast_scriptwriter':
         prompt_input = """You are a podcast scriptwriter. Write an engaging summary of the article below in a friendly but professional tone.
-                        Mention the date and the source of the article in the summary.
+                        Mention the date and the source of the article in the summary. The podcast is unnamed so don't generate a name or mention it.
                         Make it sound like it's being read on a serious news podcast. Don't make it too short, the summary should be up to 500 words long but not more. 
                         Minimise filler text in your generated output, and the emphasis should be on the content of the article. Specifically try to bring out examples, numeric data and figures if possible.
                         End with a short, natural-sounding transition to the next article."""
