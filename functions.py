@@ -7,7 +7,12 @@ from openai import OpenAI
 from newspaper import Article
 import time
 import io
-from pydub import AudioSegment
+import subprocess
+import tempfile
+
+# DEPRECATED: pydub was causing ModuleNotFoundError on Streamlit Community Cloud
+# due to audio library dependency conflicts. Using FFmpeg directly instead.
+# from pydub import AudioSegment
 
 
 # Load environment variables
@@ -232,7 +237,14 @@ def generate_podcast_podcastfy():
 #     return response
 
 def generate_podcast_openai():
-    """Generate a podcast using OpenAI's TTS API keeping char limit in mind."""
+    """Generate a podcast using OpenAI's TTS API keeping char limit in mind.
+    
+    CHANGE NOTES (2026-03-06):
+    - Replaced pydub audio concatenation with FFmpeg direct command-line approach
+    - Reason: pydub had unresolvable dependency issues on Streamlit Community Cloud
+    - New approach: Save MP3 chunks → use FFmpeg concat demuxer → merge into single file
+    - Benefit: More reliable, fewer dependencies, works on Streamlit Cloud
+    """
 
     def chunk_text(text, max_chars=4096):
         chunks = []
@@ -246,36 +258,62 @@ def generate_podcast_openai():
             chunks.append(text)
         return chunks
     
-    def merge_audio_segments(segments):
-        combined = AudioSegment.empty()
-        for segment in segments:
-            combined += segment
-        return combined
+    # DEPRECATED: Old pydub-based merging function - replaced with FFmpeg approach
+    # def merge_audio_segments(segments):
+    #     combined = AudioSegment.empty()
+    #     for segment in segments:
+    #         combined += segment
+    #     return combined
 
     text = st.session_state.final_script
     chunks = chunk_text(text)
-    audio_segments = []
+    audio_files = []
 
     from openai import OpenAI
     client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
-    for chunk in chunks:
-        response = client.audio.speech.create(
-            model="tts-1",
-            voice="alloy",
-            input=chunk,
-            response_format="mp3"
-            # speed=1.1
-        )
-        mp3_bytes = io.BytesIO(response.content)
-        segment = AudioSegment.from_file(mp3_bytes, format="mp3")
-        audio_segments.append(segment)
+    # Create temporary directory for audio chunks
+    with tempfile.TemporaryDirectory() as temp_dir:
+        for i, chunk in enumerate(chunks):
+            response = client.audio.speech.create(
+                model="tts-1",
+                voice="alloy",
+                input=chunk,
+                response_format="mp3"
+            )
+            # Save chunk to temporary file
+            chunk_path = os.path.join(temp_dir, f"chunk_{i:03d}.mp3")
+            with open(chunk_path, 'wb') as f:
+                f.write(response.content)
+            audio_files.append(chunk_path)
 
-    final_audio = merge_audio_segments(audio_segments)
+        # Create a concat file for ffmpeg
+        # FFmpeg expects a text file listing all input files with format: file 'path/to/file'
+        concat_file = os.path.join(temp_dir, "concat.txt")
+        with open(concat_file, 'w') as f:
+            for audio_file in audio_files:
+                f.write(f"file '{audio_file}'\n")
 
-    # Export merged audio to BytesIO
-    output_buffer = io.BytesIO()
-    final_audio.export(output_buffer, format="mp3")
-    output_buffer.seek(0)
+        # Use ffmpeg to concatenate audio files
+        # OLD APPROACH (pydub):
+        # final_audio = merge_audio_segments(audio_segments)
+        # output_buffer = io.BytesIO()
+        # final_audio.export(output_buffer, format="mp3")
+        #
+        # NEW APPROACH (FFmpeg command-line):
+        # - Uses FFmpeg concat demuxer for lossless, efficient merging
+        # - No re-encoding needed (copy codec preserves original quality)
+        # - More stable on constrained environments like Streamlit Cloud
+        
+        output_path = os.path.join(temp_dir, "output.mp3")
+        subprocess.run([
+            'ffmpeg', '-f', 'concat', '-safe', '0', 
+            '-i', concat_file, '-c', 'copy', output_path
+        ], capture_output=True, check=True)
 
-    return output_buffer
+        # Read the final output
+        with open(output_path, 'rb') as f:
+            output_buffer = io.BytesIO(f.read())
+        output_buffer.seek(0)
+
+        return output_buffer
