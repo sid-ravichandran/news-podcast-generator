@@ -1,13 +1,10 @@
-streamlit
-requests
-python-dotenv
-pandas
-openai
-newspaper3k
-# elevenlabs
-lxml
-lxml-html-clean
-python-dateutil
-# podcastfy
-pydub
-ffmpeg-python
+streamlit>=1.28.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+pandas>=2.0.0
+openai>=1.0.0
+newspaper3k>=0.2.8
+lxml>=4.9.0
+lxml-html-clean>=0.1.0
+python-dateutil>=2.8.0
+pydub>=0.25.1
