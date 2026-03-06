@@ -399,6 +399,7 @@ st.markdown("""
 ---
 <div style='text-align: center; color: #666;'>
     <p>Made with ❤️ by Sid Ravichandran</p>
+    <p>https://www.linkedin.com/in/sid-ravichandran/</p>
     <p>Powered by OpenAI, News API, and Streamlit</p>
 </div>
 """, unsafe_allow_html=True)
