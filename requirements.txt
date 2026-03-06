@@ -11,4 +11,3 @@ python-dateutil
 # podcastfy
 pydub
 ffmpeg-python
-pyaudioop
